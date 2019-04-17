@@ -71,7 +71,7 @@ conky.config = {
 };
 
 conky.text = [[
-${voffset 12}${color1}${goto 106}${freq_g cpu0} Ghz${alignr 330}${hwmon 1 temp 1} °C
+${voffset 12}${color1}${goto 106}${freq_g cpu0} Ghz${alignr 330}${hwmon 0 temp 1} °C
 #${voffset 16}${color1}${goto 106}${freq_g cpu0} Ghz${alignr 330}${acpitemp} °C
 ## CPU ###################
 #{{ CPU }}
@@ -91,6 +91,8 @@ ${font Michroma:size=10}${color0}${voffset 26}${goto 324}INTERNET INFO
 #{{ TIME }}
 ## BATTERY #####################
 #{{ BATTERY }}
+## GPU ###################
+#{{ GPU }}${font Michroma:size=10}${color0}${goto 370}${voffset -55}GPU
 ## OS
 #{{ OS }}
 ]];

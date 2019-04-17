@@ -29,14 +29,15 @@ from collections import OrderedDict
 import sys
 from os.path import expanduser
 import logging as log
+import subprocess
 
 # Inittiating variables
 home = expanduser("~")
-working_dir = home+'/conky/conky-grapes/'
-src_lua = working_dir+'rings-v2_tpl'
-dest_lua = working_dir+'rings-v2_gen.lua'
-src_conky = working_dir+'conky_tpl'
-dest_conky = working_dir+'conky_gen.conkyrc'
+working_dir = home + '/conky/conky-grapes/'
+src_lua = working_dir + 'rings-v2_tpl'
+dest_lua = working_dir + 'rings-v2_gen.lua'
+src_conky = working_dir + 'conky_tpl'
+dest_conky = working_dir + 'conky_gen.conkyrc'
 
 # Defaults is blue metrics and white font
 ## blue     | 34cdff
@@ -46,29 +47,30 @@ dest_conky = working_dir+'conky_gen.conkyrc'
 default_fg_color = '0x34cdff'
 
 couleurs = {
-        'yellow': 'fffd1d',
-        'lightyellow': 'e7dc64',
-        'orange': 'ff8523',
-        'lightorange': 'e79064',
-        'red': 'ff1d2b',
-        'lightred': 'e7646a',
-        'green': '1dff22',
-        'lightgreen': '64e766',
-        'pink': 'd70751',
-        'lightpink': 'e78cb7',
-        'brown': 'b57131',
-        'lightbrown': 'ceab8a',
-        'blue': '165cc4',
-        'iceblue': '43d2e5',
-        'skyblue': '8fd3ff',
-        'white': 'efefef',
-        'grey': '323232',
-        'lightgrey': '323232',
-        'black': '000000',
-        'violet': 'bb07d7',
-        'lightviolet': 'a992e6',
-        'ASSE': '006a32'
-        }
+    'yellow': 'fffd1d',
+    'lightyellow': 'e7dc64',
+    'orange': 'ff8523',
+    'lightorange': 'e79064',
+    'red': 'ff1d2b',
+    'lightred': 'e7646a',
+    'green': '1dff22',
+    'lightgreen': '64e766',
+    'pink': 'd70751',
+    'lightpink': 'e78cb7',
+    'brown': 'b57131',
+    'lightbrown': 'ceab8a',
+    'blue': '165cc4',
+    'iceblue': '43d2e5',
+    'skyblue': '8fd3ff',
+    'white': 'efefef',
+    'grey': '323232',
+    'lightgrey': '323232',
+    'black': '000000',
+    'violet': 'bb07d7',
+    'lightviolet': 'a992e6',
+    'ASSE': '006a32'
+}
+
 
 def init(rings, title, text, old, reload):
     """Initialisation of colors
@@ -84,19 +86,20 @@ def init(rings, title, text, old, reload):
             filedata = f.read()
             matchlua = re.findall('^normal="0x([0-9a-f]{6})"', filedata, re.M)
             log.info('colors were: {}'.format(matchlua))
-            crings = '0x'+matchlua[0]
+            crings = '0x' + matchlua[0]
             # for conky
-            ctitle = '#'+matchconky[0]
-            ctext = '#'+matchconky[1]
+            ctitle = '#' + matchconky[0]
+            ctext = '#' + matchconky[1]
     else:
         # for lua
-        crings = '0x'+couleurs[rings]
+        crings = '0x' + couleurs[rings]
         # for conky
-        ctitle = '#'+couleurs[title]
-        ctext = '#'+couleurs[text]
+        ctitle = '#' + couleurs[title]
+        ctext = '#' + couleurs[text]
     ctextsize = '8'
 
     return crings, ctitle, ctext, ctextsize, old
+
 
 def read_conf(filename):
     """ Read file in variable and returns it
@@ -109,6 +112,7 @@ def read_conf(filename):
         return 1
     return filedata
 
+
 def write_conf(filedata, dest):
     """ Write new config file
     """
@@ -119,12 +123,14 @@ def write_conf(filedata, dest):
         log.error("[Error] Could not open {}".format(dest))
         return 1
 
+
 def write_color_lua():
     """ Last function called
     """
     datain = read_conf(dest_lua)
     filedata = datain.replace(default_fg_color, crings)
     write_conf(filedata, dest_lua)
+
 
 def write_conf_blank(src, dest):
     """ Reload new config file from template
@@ -137,6 +143,7 @@ def write_conf_blank(src, dest):
 
     write_conf(filedata, dest)
 
+
 def cpu_number():
     """ Looks for number of CPU threads
     """
@@ -146,8 +153,8 @@ def cpu_number():
     with open('/proc/cpuinfo') as f:
         nbcpu = 0
         for line in f:
-        # Ignore the blank line separating the information between
-        # details about two processing units
+            # Ignore the blank line separating the information between
+            # details about two processing units
             if line.strip():
                 if line.rstrip('\n').startswith('cpu MHz'):
                     nbcpu += 1
@@ -157,6 +164,7 @@ def cpu_number():
 
     log.info('Number of CPU(s) kept: {0}'.format(nbcpu))
     return nbcpu
+
 
 def route_interface():
     """ Returns the network interface used for routing
@@ -183,6 +191,7 @@ def route_interface():
                     iswifi = True
     return [gwinterface, iswifi]
 
+
 def disk_select():
     """ Return the mount point to monitor
     """
@@ -199,15 +208,16 @@ def disk_select():
     if len(disks) > 3:
         diskKeep = disks[:3]
         log.info('Keeping 3 first locally mounted filesystem identified: {0}'
-            .format(diskKeep))
+                 .format(diskKeep))
     else:
         diskKeep = disks
     return diskKeep
 
+
 def meminfo():
     """ Return the information in /proc/meminfo as a dictionary
     """
-    meminfo=OrderedDict()
+    meminfo = OrderedDict()
 
     with open('/proc/meminfo') as f:
         for line in f:
@@ -216,6 +226,7 @@ def meminfo():
     log.info('Total memory: {0}'.format(meminfo['MemTotal']))
     log.info('Free memory: {0}'.format(meminfo['MemFree']))
     return meminfo
+
 
 def write_batconf():
     """ Prepare lua config for BATTERY if detected
@@ -244,14 +255,14 @@ def write_batconf():
         thickness = 10
         log.info('- Calculating index for battery in lua watch_battery')
         # 9 => lua starts at 0 | 2 for mem, 2 for network, 1 for temp, 3 for time
-        index = cpunb+len(disks)+9
+        index = cpunb + len(disks) + 9
         log.info('  Battery index = {}'.format(index))
         data = {
             'arg': 'BAT{}'.format(BAT),
             'bg_alpha': alpha,
             'radius': radius,
             'thickness': thickness
-            }
+        }
 
         log.info('Writing lua BATTERY config in config file')
         new_block = """    {{
@@ -271,22 +282,27 @@ def write_batconf():
         batconf_lua.append(new_block)
         filedata = read_conf(dest_lua)
         filedata = filedata.replace('--{{ BATTERY }}', ''.join(batconf_lua))
-        filedata = filedata.replace('--{{ BATTERY_WATCH }}', 'index={}\n    battery=tonumber(conky_parse("${{battery_percent {arg} }}"))'.format(index,**data))
+        filedata = filedata.replace('--{{ BATTERY_WATCH }}',
+                                    'index={}\n    battery=tonumber(conky_parse("${{battery_percent {arg} }}"))'.format(
+                                        index, **data))
         filedata = filedata.replace('--{{ BATTERY_ACTIVATE }}', 'battery_watch()')
         write_conf(filedata, dest_lua)
 
         log.info('Writing conky BATTERY config in config file')
         if old:
             new_block = "${font Michroma:size=10}${color0}${goto 296}${voffset 22}BATTERY"
-            new_block += "\n${{font}}${{color0}}${{goto 280}}${{voffset 1}}${{color1}}${{battery_percent {arg}}}%".format(**data)
+            new_block += "\n${{font}}${{color0}}${{goto 280}}${{voffset 1}}${{color1}}${{battery_percent {arg}}}%".format(
+                **data)
         else:
             new_block = "${font Michroma:size=10}${color0}${goto 296}${voffset 28}BATTERY"
-            new_block += "\n${{font}}${{color0}}${{goto 280}}${{voffset -4}}${{color1}}${{battery_percent {arg}}}%".format(**data)
+            new_block += "\n${{font}}${{color0}}${{goto 280}}${{voffset -4}}${{color1}}${{battery_percent {arg}}}%".format(
+                **data)
 
         batconf_conky.append(new_block)
         filedata = read_conf(dest_conky)
         filedata = filedata.replace('#{{ BATTERY }}', ''.join(batconf_conky))
-        filedata = filedata.replace('#{{ OS }}', "${font Michroma:bold:size=11}${color0}${voffset 50}${alignc}${execi 3600 awk -F '=' '/PRETTY_NAME/ { print $2 }' /etc/os-release | tr -d '\"'}")
+        filedata = filedata.replace('#{{ OS }}',
+                                    "${font Michroma:bold:size=11}${color0}${voffset 50}${alignc}${execi 3600 awk -F '=' '/PRETTY_NAME/ { print $2 }' /etc/os-release | tr -d '\"'}")
         write_conf(filedata, dest_conky)
     else:
         # adjusting if no battery
@@ -294,6 +310,7 @@ def write_batconf():
         filedata = read_conf(dest_conky)
         filedata = filedata.replace('#{{ OS }}', new_block)
         write_conf(filedata, dest_conky)
+
 
 def write_fsconf_lua(disk, cpunb):
     """ Prepare lua config for FILESYSTEM
@@ -309,13 +326,13 @@ def write_fsconf_lua(disk, cpunb):
     index_start = cpunb + 4
     log.info('index_start is {}'.format(index_start))
 
-    for cpt in range (len(disk)):
+    for cpt in range(len(disk)):
         data = {
-                'arg': disk[cpt],
-                'bg_alpha': alpha,
-                'radius': radius,
-                'thickness': thickness
-                }
+            'arg': disk[cpt],
+            'bg_alpha': alpha,
+            'radius': radius,
+            'thickness': thickness
+        }
 
         new_block = """\n    {{
         name='fs_used_perc',
@@ -335,13 +352,13 @@ def write_fsconf_lua(disk, cpunb):
         fsconf_lua.append(new_block)
         # for DISK_WATCH section
         index = index_start + cpt
-        with open(working_dir+'fs_watch') as f:
+        with open(working_dir + 'fs_watch') as f:
             for line in f:
                 test = re.sub(r'FILESYS', data['arg'], line)
                 fsconf_watch.append(re.sub(r'INDEX', format(index), test))
 
         alpha -= alpha_scale
-        radius -= (thickness +1)
+        radius -= (thickness + 1)
         thickness -= 1
 
     log.info('Writing FILESYSTEM LUA config in config file')
@@ -354,6 +371,7 @@ def write_fsconf_lua(disk, cpunb):
     filedata = filedata.replace('--{{ DISK_WATCH }}', ''.join(fsconf_watch))
     write_conf(filedata, dest_lua)
 
+
 def write_fsconf_conky(fs):
     """ Prepare conky config for CPU
     """
@@ -364,23 +382,24 @@ def write_fsconf_conky(fs):
         voffset = -81
     fs_max = 3
 
-    for cpt in range (len(fs)):
+    for cpt in range(len(fs)):
         if cpt > 0:
-                 voffset = -1
+            voffset = -1
         data = {
-                'voffset': voffset,
-                'filesys': "{}"
+            'voffset': voffset,
+            'filesys': "{}"
                 .format(fs[cpt])
-                }
+        }
 
-        new_block = "${{goto 70}}${{voffset {voffset}}}{filesys}${{color1}}${{alignr 310}}${{fs_used {filesys}}} / ${{fs_size {filesys}}}\n".format(**data)
+        new_block = "${{goto 70}}${{voffset {voffset}}}{filesys}${{color1}}${{alignr 310}}${{fs_used {filesys}}} / ${{fs_size {filesys}}}\n".format(
+            **data)
         conf.append(new_block)
 
     log.info('adjusting voffset for FS...')
     if old:
-        adjust = 12 + ((fs_max - len(fs)) *10)
+        adjust = 12 + ((fs_max - len(fs)) * 10)
     else:
-        adjust = 8 + ((fs_max - len(fs)) *10)
+        adjust = 8 + ((fs_max - len(fs)) * 10)
     new_block = "${{font Michroma:size=10}}${{color0}}${{goto 68}}${{voffset {0}}}FILESYSTEM".format(adjust)
     conf.append(new_block)
 
@@ -388,6 +407,7 @@ def write_fsconf_conky(fs):
     filedata = read_conf(dest_conky)
     filedata = filedata.replace('#{{ FILESYSTEM }}', ''.join(conf))
     write_conf(filedata, dest_conky)
+
 
 def write_cpuconf_lua(cpunb):
     """ Prepare lua config for CPU
@@ -405,13 +425,13 @@ def write_cpuconf_lua(cpunb):
         radius = 88
     thickness = thickness_max
 
-    for cpt in range (cpunb):
+    for cpt in range(cpunb):
         data = {
-            'arg': "cpu{}".format(cpt+1),
+            'arg': "cpu{}".format(cpt + 1),
             'bg_alpha': alpha,
             'radius': radius,
             'thickness': thickness
-            }
+        }
 
         new_block = """\n    {{
         name='cpu',
@@ -430,13 +450,14 @@ def write_cpuconf_lua(cpunb):
 
         cpuconf_lua.append(new_block)
         alpha -= alpha_scale
-        radius -= (thickness +1)
+        radius -= (thickness + 1)
         thickness -= 0.5
 
     log.info('Writing CPU LUA config in config file')
     filedata = read_conf(dest_lua)
     filedata = filedata.replace('--{{ CPU }}', ''.join(cpuconf_lua))
     write_conf(filedata, dest_lua)
+
 
 def write_cpuconf_conky(cpunb):
     """ Prepare conky config for CPU
@@ -459,10 +480,11 @@ def write_cpuconf_conky(cpunb):
 
     log.info('voffest is set to {}'.format(voffset))
 
-    for cpt in range (cpunb):
-        data = { 'voffset': voffset, 'cpu': "{}".format(cpt+1)}
+    for cpt in range(cpunb):
+        data = {'voffset': voffset, 'cpu': "{}".format(cpt + 1)}
 
-        new_block = "${{voffset {voffset}}}${{goto 120}}${{color1}}CPU {cpu}${{alignr 330}}${{color1}}${{cpu cpu{cpu}}}%\n".format(**data)
+        new_block = "${{voffset {voffset}}}${{goto 120}}${{color1}}CPU {cpu}${{alignr 330}}${{color1}}${{cpu cpu{cpu}}}%\n".format(
+            **data)
         cpuconf.append(new_block)
 
     log.info('adjusting voffset for top cpu processes...')
@@ -472,7 +494,8 @@ def write_cpuconf_conky(cpunb):
         adjust = 28 - (voffset * cpunb)
 
     if old:
-        new_block = "${{goto 50}}${{voffset {0}}}${{color1}}${{top name 1}}${{alignr 306}}${{top cpu 1}}%".format(adjust)
+        new_block = "${{goto 50}}${{voffset {0}}}${{color1}}${{top name 1}}${{alignr 306}}${{top cpu 1}}%".format(
+            adjust)
     else:
         new_block = "${{goto 49}}${{voffset 12}}${{color1}}${{top name 1}}${{alignr 306}}${{top cpu 1}}%".format(adjust)
 
@@ -482,6 +505,7 @@ def write_cpuconf_conky(cpunb):
     filedata = read_conf(dest_conky)
     filedata = filedata.replace('#{{ CPU }}', ''.join(cpuconf))
     write_conf(filedata, dest_conky)
+
 
 def write_diskioconf_conky():
     """ Prepare conky config for IO
@@ -502,9 +526,10 @@ def write_diskioconf_conky():
     new_block = "${voffset -130}${goto 378}${font}${color1}${top_io name 1}${alignr 30}${top_io io_write 1}%\n"
     ioconf.append(new_block)
 
-    for cpt in range (2,4):
-        data = { 'voffset': voffset, 'io': "{}".format(cpt)}
-        new_block = "${{goto 378}}${{voffset {voffset}}}${{color1}}${{top_io name {io}}}${{alignr 30}}${{top_io io_write {io}}}%\n".format(**data)
+    for cpt in range(2, 4):
+        data = {'voffset': voffset, 'io': "{}".format(cpt)}
+        new_block = "${{goto 378}}${{voffset {voffset}}}${{color1}}${{top_io name {io}}}${{alignr 30}}${{top_io io_write {io}}}%\n".format(
+            **data)
         ioconf.append(new_block)
 
     if old:
@@ -517,6 +542,7 @@ def write_diskioconf_conky():
     filedata = read_conf(dest_conky)
     filedata = filedata.replace('#{{ DISKIO }}', ''.join(ioconf))
     write_conf(filedata, dest_conky)
+
 
 def write_memconf_conky():
     """ Prepare conky config for IO
@@ -532,9 +558,10 @@ def write_memconf_conky():
 
     memconf.append(new_block)
 
-    for cpt in range (2,4):
-        data = { 'mem': "{}".format(cpt)}
-        new_block = "${{goto 324}}${{color1}}${{top_mem name {mem}}}${{alignr 40}}${{top_mem mem {mem}}}%\n".format(**data)
+    for cpt in range(2, 4):
+        data = {'mem': "{}".format(cpt)}
+        new_block = "${{goto 324}}${{color1}}${{top_mem name {mem}}}${{alignr 40}}${{top_mem mem {mem}}}%\n".format(
+            **data)
         memconf.append(new_block)
 
     if old:
@@ -549,6 +576,7 @@ def write_memconf_conky():
     filedata = filedata.replace('#{{ MEMORY }}', ''.join(memconf))
     write_conf(filedata, dest_conky)
 
+
 def write_netconf_lua(interface):
     """ Prepare lua config for NETWORK
     """
@@ -559,14 +587,14 @@ def write_netconf_lua(interface):
     alpha_scale = 0.2
     thickness = 12
 
-    for speed in  ['downspeedf', 'upspeedf']:
+    for speed in ['downspeedf', 'upspeedf']:
         data = {
             'name': speed,
             'arg': interface[0],
             'bg_alpha': alpha,
             'radius': radius,
             'thickness': thickness
-            }
+        }
 
         new_block = """\n    {{
         name='{name}',
@@ -585,13 +613,14 @@ def write_netconf_lua(interface):
 
         netconf_lua.append(new_block)
         alpha -= alpha_scale
-        radius -= (thickness +1)
+        radius -= (thickness + 1)
         thickness -= 1
 
     log.info('Writing NETWORK LUA config in config file')
     filedata = read_conf(dest_lua)
     filedata = filedata.replace('--{{ NETWORK }}', ''.join(netconf_lua))
     write_conf(filedata, dest_lua)
+
 
 def write_netconf_conky(interface):
     """ Prepare conky config for network interface
@@ -600,7 +629,7 @@ def write_netconf_conky(interface):
     if interface[0] == "no_gateway_interface":
         log.warning('No default route on the system! Tachikoma, what is happening?!')
 
-        with open(working_dir+'nonetconf') as f:
+        with open(working_dir + 'nonetconf') as f:
             for line in f:
                 netconf.append(line)
         log.info('Writing NETWORK conky config in config file')
@@ -611,11 +640,11 @@ def write_netconf_conky(interface):
     elif interface[1] is True:
         log.info('Setting up Wifi as main interface')
         if old:
-            with open(working_dir+'wificonf_old') as f:
+            with open(working_dir + 'wificonf_old') as f:
                 for line in f:
                     netconf.append(re.sub(r'INTERFACE', interface[0], line))
         else:
-            with open(working_dir+'wificonf') as f:
+            with open(working_dir + 'wificonf') as f:
                 for line in f:
                     netconf.append(re.sub(r'INTERFACE', interface[0], line))
 
@@ -626,11 +655,11 @@ def write_netconf_conky(interface):
     else:
         log.info('Setting up NIC as main interface')
         if old:
-            with open(working_dir+'ethconf_old') as f:
+            with open(working_dir + 'ethconf_old') as f:
                 for line in f:
                     netconf.append(re.sub(r'INTERFACE', interface[0], line))
         else:
-            with open(working_dir+'ethconf') as f:
+            with open(working_dir + 'ethconf') as f:
                 for line in f:
                     netconf.append(re.sub(r'INTERFACE', interface[0], line))
 
@@ -638,6 +667,7 @@ def write_netconf_conky(interface):
         filedata = read_conf(dest_conky)
         filedata = filedata.replace('#{{ NETWORK }}', ''.join(netconf))
         write_conf(filedata, dest_conky)
+
 
 def write_timeconf_conky():
     """ Prepare conky config for Time/Date
@@ -649,7 +679,7 @@ def write_timeconf_conky():
     if old:
         new_block = "${font Michroma:size=10}${alignr 300}${voffset -40}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
     else:
-        new_block = "${font Michroma:size=10}${alignr 300}${voffset -50}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
+        new_block = "${font Michroma:size=10}${alignr 300}${voffset -40}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
 
     timeconf.append(new_block)
 
@@ -659,12 +689,108 @@ def write_timeconf_conky():
     write_conf(filedata, dest_conky)
 
 
+# new stuff
+def gpu_exist():
+    """
+    Returns the number of VGA Controllers in lspci
+    :return: int
+    """
+
+    proc1 = subprocess.Popen(['lspci'], stdout=subprocess.PIPE)
+    proc2 = subprocess.Popen(['grep', '-i', 'vga\\|3d\\|2d'], stdin=proc1.stdout,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc1.stdout.close()  # Allow proc1 to receive a SIGPIPE if proc2 exits.
+    gpus = proc2.communicate()[0].splitlines()  # split devices for counting
+
+    if len(gpus) > 0:
+        return True
+
+    return False
+
+
+def write_gpuconf_conky():
+    """
+    Prepare conky config for CPU
+    :param gpu_bool:
+    :return:
+    """
+    gpuconf = []
+    # set nvidia argument, type and voffset
+    arguments = [['gputemp', '°C', '30'], ['gpuutil', '%', '-1'], ['memused', 'MiB', '-1']]
+
+    for idx in range(len(arguments)):
+        data = {'voffset': arguments[idx][2], 'legend': arguments[idx][0], 'type': arguments[idx][1]}
+        new_block = "${{font}}${{voffset {voffset}}}${{goto 330}}${{color1}}{legend}${{alignr 80}}${{color1}}${{nvidia {legend}}} {type}\n".format(
+            **data)
+        gpuconf.append(new_block)
+
+    log.info('Writing GPU conky config in config file')
+    filedata = read_conf(dest_conky)
+    filedata = filedata.replace('#{{ GPU }}', ''.join(gpuconf))
+    write_conf(filedata, dest_conky)
+
+
+def write_gpuconf_lua():
+    """
+    Prepare lua config for GPU
+    :param gpunb:
+    :return:
+    """
+    gpuconf_lua = []
+    radius = 40
+    thickness_max = 10
+    alpha = 0.7
+    # we will spread alpha over 0.4 gradient
+    alpha_scale = 0.4 / 2
+    log.info('We have {} GPUs'.format(1))
+    thickness = thickness_max
+
+    # set args for nvidia see man conky
+    arguments = [['gputemp', '110'], ['gpuutil', '100'], ['memused', '1999']]
+
+    # assumes nvidia
+    for idx in range(len(arguments)):
+        data = {
+            'arg': "{}".format(arguments[idx][0]),
+            'max': "{}".format(arguments[idx][1]),
+            'bg_alpha': alpha,
+            'radius': radius,
+            'thickness': thickness
+        }
+
+        new_block = """\n    {{
+            name='nvidia',
+            arg='{arg}',
+            max='{max}',
+            bg_colour=0x3b3b3b,
+            bg_alpha={bg_alpha},
+            fg_colour=0x34cdff,
+            fg_alpha=0.8,
+            x=300, y=464,
+            radius={radius},
+            thickness={thickness},
+            start_angle=160,
+            end_angle=400
+        }},""".format(**data)
+
+        gpuconf_lua.append(new_block)
+        alpha -= alpha_scale
+        radius -= (thickness + 1)
+        thickness -= 0.5
+
+    log.info('Writing GPU LUA config in config file')
+    filedata = read_conf(dest_lua)
+    filedata = filedata.replace('--{{ GPU }}', ''.join(gpuconf_lua))
+    write_conf(filedata, dest_lua)
+
+
 # main
 if __name__ == "__main__":
-#    print ("called directly")
-    print ("Digging in the system to gather info...\n")
+    #    print ("called directly")
+    print("Digging in the system to gather info...\n")
 
-    parser = argparse.ArgumentParser(description='Creates/overwrites conky and lua configuration for conky-grapes adjustments to your system.')
+    parser = argparse.ArgumentParser(
+        description='Creates/overwrites conky and lua configuration for conky-grapes adjustments to your system.')
     parser.add_argument('-ri', '--color_rings', dest='rings', metavar='COLOR_RINGS',
                         default='blue', choices=couleurs,
                         help='the textual color for the rings and titles, among: {0}'
@@ -679,16 +805,16 @@ if __name__ == "__main__":
                         default='grey', choices=couleurs,
                         help='the textual color for the text display, see COLOR_RINGS \
                             for accepted values.'
-                       )
+                        )
     parser.add_argument('--old_freetype', '--old', dest='old', action="store_true",
                         help='small adjustments for systems using older version of freetype (< 2.8). Most notably the font size decimal delimiter is changed from "." to ",". This is worth a try if you notice bad alignment of bad font display.'
-                       )
+                        )
     parser.add_argument('-v', '--verbose', dest='verbose', action="store_true",
                         help='verbose mode, displays gathered info as we found it.'
-                       )
+                        )
     parser.add_argument('-r', '--reload', dest='reload', action="store_true",
                         help='Only refresh configuration resource-wise. Colors will stay the same as previously.'
-                       )
+                        )
 
     args = parser.parse_args()
     # Log Level
@@ -710,13 +836,18 @@ if __name__ == "__main__":
     meminfo = meminfo()
     interface = route_interface()
     disks = disk_select()
+    gpu = gpu_exist()
 
     # wrtie LUA file
+    if gpu:
+        write_gpuconf_lua()
     write_cpuconf_lua(cpunb)
-    write_fsconf_lua(disks,cpunb)
+    write_fsconf_lua(disks, cpunb)
     write_netconf_lua(interface)
 
     # wrtie conky file
+    if gpu:
+        write_gpuconf_conky()
     write_cpuconf_conky(cpunb)
     write_diskioconf_conky()
     write_memconf_conky()
@@ -736,5 +867,4 @@ if __name__ == "__main__":
               " (and you installed required fonts), chances are you are using an"
               " old version of freetype2 (< 2.8). The '--old' option when creating"
               " your conky configuration file should address this.")
-    print(msg_ok .format(dest_conky, dest_lua))
-
+    print(msg_ok.format(dest_conky, dest_lua))
