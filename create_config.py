@@ -675,11 +675,11 @@ def write_timeconf_conky():
     timeconf = []
 
     # top timeory processes
-    log.info('Starting Memory config')
+    log.info('Starting Time config')
     if old:
         new_block = "${font Michroma:size=10}${alignr 300}${voffset -40}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
     else:
-        new_block = "${font Michroma:size=10}${alignr 300}${voffset -40}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
+        new_block = "${font Michroma:size=10}${alignr 300}${voffset -50}${color0}${time %a} ${color0}${time %x}\n${font Michroma:size=18}${alignr 318}${color1}${voffset -4}${time %H}:${time %M}"
 
     timeconf.append(new_block)
 
