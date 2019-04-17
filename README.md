@@ -1,5 +1,5 @@
 # conky-grapes
-**this is a fork version focused on conky-lua-nvidia usage**
+**This is a fork version focused on conky-lua-nvidia usage**
 
 **The Github repository is only a mirror, only for visibility purppose.** I use GitLab CE for my own projects (which now has mirroring feature on Community Edition).
 
