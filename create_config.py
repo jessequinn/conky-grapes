@@ -27,17 +27,20 @@ import platform
 import re
 from collections import OrderedDict
 import sys
-from os.path import expanduser
+from os.path import expanduser, isfile, realpath, dirname
+from os import makedirs
+from shutil import move
 import logging as log
 import subprocess
 
-# Inittiating variables
-home = expanduser("~")
-working_dir = home + '/conky/conky-grapes/'
-src_lua = working_dir + 'rings-v2_tpl'
-dest_lua = working_dir + 'rings-v2_gen.lua'
-src_conky = working_dir + 'conky_tpl'
-dest_conky = working_dir + 'conky_gen.conkyrc'
+# Global variables
+# TODO: remove this stuff ...
+working_dir = ''
+config_dir = expanduser("~") + '/conky/conky-grapes/'
+src_lua = ''
+dest_lua = ''
+src_conky = ''
+dest_conky = ''
 
 # Defaults is blue metrics and white font
 ## blue     | 34cdff
@@ -689,7 +692,8 @@ def write_timeconf_conky():
     write_conf(filedata, dest_conky)
 
 
-# new stuff
+###########################################
+# added by Jesse Thomas Ernest Quinn
 def gpu_exist():
     """
     Returns the number of VGA Controllers in lspci
@@ -708,6 +712,42 @@ def gpu_exist():
     return False
 
 
+def verify_hwmon():
+    """
+    Need to check which directory contains hwmon temperature sensing as the Lua script will fail otherwise
+    :return: str
+    """
+    if isfile('/sys/class/hwmon/hwmon0/temp1_input'):
+        hwmon_argument = '0 temp 1'
+    else:
+        hwmon_argument = '1 temp 1'
+
+    return hwmon_argument
+
+
+def write_tempconf_conky(hwmon_location):
+    """
+    Prepare conky config for Temperature
+    :param gpu_bool:
+    :return:
+    """
+    tempconf = []
+    # set nvidia argument, type and voffset
+    # arguments = [['hwmon ' + hwmon_location, '°C', '12'], ['acpitemp', '°C', '16']]
+    arguments = [['hwmon ' + hwmon_location, '°C', '12']]
+
+    for idx in range(len(arguments)):
+        data = {'voffset': arguments[idx][2], 'legend': arguments[idx][0], 'type': arguments[idx][1]}
+        new_block = "${{voffset {voffset}}}${{color1}}${{goto 106}}${{freq_g cpu0}} Ghz${{alignr 330}}${{{legend}}} {type}".format(
+            **data)
+        tempconf.append(new_block)
+
+    log.info('Writing TEMP conky config in config file')
+    filedata = read_conf(dest_conky)
+    filedata = filedata.replace('#{{ TEMP }}', ''.join(tempconf))
+    write_conf(filedata, dest_conky)
+
+
 def write_gpuconf_conky():
     """
     Prepare conky config for CPU
@@ -716,7 +756,7 @@ def write_gpuconf_conky():
     """
     gpuconf = []
     # set nvidia argument, type and voffset
-    arguments = [['gputemp', '°C', '30'], ['gpuutil', '%', '-1'], ['memused', 'MiB', '-1']]
+    arguments = [['gputemp', '°C', '40'], ['gpuutil', '%', '-1'], ['memused', 'MiB', '-1']]
 
     for idx in range(len(arguments)):
         data = {'voffset': arguments[idx][2], 'legend': arguments[idx][0], 'type': arguments[idx][1]}
@@ -728,6 +768,41 @@ def write_gpuconf_conky():
     filedata = read_conf(dest_conky)
     filedata = filedata.replace('#{{ GPU }}', ''.join(gpuconf))
     write_conf(filedata, dest_conky)
+
+
+def write_tempconf_lua(hwmon_location):
+    """
+    Prepare lua config for TEMP
+    :param gpunb:
+    :return:
+    """
+    tempconf_lua = []
+
+    data = {
+        'arg': hwmon_location,
+    }
+
+    new_block = """\n    {{
+        name='hwmon',
+        arg='{arg}',
+        max=110,
+        bg_colour=0x3b3b3b,
+        bg_alpha=0.8,
+        fg_colour=0x34cdff,
+        fg_alpha=0.8,
+        x=200, y=120,
+        radius=97,
+        thickness=4,
+        start_angle=0,
+        end_angle=240
+    }},""".format(**data)
+
+    tempconf_lua.append(new_block)
+
+    log.info('Writing TEMP LUA config in config file')
+    filedata = read_conf(dest_lua)
+    filedata = filedata.replace('--{{ TEMP }}', ''.join(tempconf_lua))
+    write_conf(filedata, dest_lua)
 
 
 def write_gpuconf_lua():
@@ -784,10 +859,26 @@ def write_gpuconf_lua():
     write_conf(filedata, dest_lua)
 
 
-# main
+###########################################
+
 if __name__ == "__main__":
-    #    print ("called directly")
-    print("Digging in the system to gather info...\n")
+    try:
+        makedirs(config_dir)
+        print('Making Conky-Grapes config directory: {}'.format(config_dir))
+    except FileExistsError:
+        print('Conky-Grapes config directory already exists: {}'.format(config_dir))
+        pass
+
+    # define current directory for source and destination files
+    working_dir = dirname(realpath(__file__)) + '/'
+    print('Your current working path: {}'.format(working_dir))
+
+    # set the global variables
+    # TODO: I don't like this code!
+    src_lua = working_dir + 'rings-v2_tpl'
+    dest_lua = working_dir + 'rings-v2_gen.lua'
+    src_conky = working_dir + 'conky_tpl'
+    dest_conky = working_dir + 'conky_gen.conkyrc'
 
     parser = argparse.ArgumentParser(
         description='Creates/overwrites conky and lua configuration for conky-grapes adjustments to your system.')
@@ -817,6 +908,7 @@ if __name__ == "__main__":
                         )
 
     args = parser.parse_args()
+
     # Log Level
     if args.verbose:
         log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
@@ -832,20 +924,23 @@ if __name__ == "__main__":
     write_conf_blank(src_conky, dest_conky)
 
     # get system info
+    hwmon_location = verify_hwmon()
     cpunb = cpu_number()
     meminfo = meminfo()
     interface = route_interface()
     disks = disk_select()
     gpu = gpu_exist()
 
-    # wrtie LUA file
+    # write LUA file
+    write_tempconf_lua(hwmon_location)
     if gpu:
         write_gpuconf_lua()
     write_cpuconf_lua(cpunb)
     write_fsconf_lua(disks, cpunb)
     write_netconf_lua(interface)
 
-    # wrtie conky file
+    # write conky file
+    write_tempconf_conky(hwmon_location)
     if gpu:
         write_gpuconf_conky()
     write_cpuconf_conky(cpunb)
@@ -858,6 +953,12 @@ if __name__ == "__main__":
     write_batconf()
     write_color_lua()
 
+    # mv config files to config_dir
+    print(dest_conky)
+    print(config_dir + 'conky_gen.conkyrc')
+    move(dest_conky, config_dir + 'conky_gen.conkyrc')
+    move(dest_lua, config_dir + 'rings-v2_gen.lua')
+
     msg_ok = ("\n    *** Success! ***\n\nNew config files have been created:"
               "\n- {}\n- {} \n\nIf you add a previous conky-grapes running,"
               " the update should be instantaneous. If conky-grapes is not"
@@ -867,4 +968,5 @@ if __name__ == "__main__":
               " (and you installed required fonts), chances are you are using an"
               " old version of freetype2 (< 2.8). The '--old' option when creating"
               " your conky configuration file should address this.")
+
     print(msg_ok.format(dest_conky, dest_lua))

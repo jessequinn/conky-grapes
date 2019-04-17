@@ -24,11 +24,13 @@ conky.config = {
     own_window_class = override,
 	own_window = true,
 -- XFCE4 = desktop, sinon 'normal'
-	own_window_type = 'desktop',
+--	own_window_type = 'desktop',
+	own_window_type = 'normal',
 	own_window_transparent = true,
 
 -- XFCE4 - undecorate not working
-	own_window_hints = 'sticky,skip_taskbar,skip_pager,below',
+--	own_window_hints = 'sticky,skip_taskbar,skip_pager,below',
+	own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
 
 	border_inner_margin = 0,
 	border_outer_margin = 0,
@@ -37,7 +39,7 @@ conky.config = {
     minimum_height = 600,
 	maximum_width = 520,
 
-	alignment = 'top_right',
+	alignment = 'tr',
 	gap_x = 20,
 	gap_y = 112,
 
@@ -71,8 +73,8 @@ conky.config = {
 };
 
 conky.text = [[
-${voffset 12}${color1}${goto 106}${freq_g cpu0} Ghz${alignr 330}${hwmon 0 temp 1} °C
-#${voffset 16}${color1}${goto 106}${freq_g cpu0} Ghz${alignr 330}${acpitemp} °C
+## TEMP ###################
+#{{ TEMP }}
 ## CPU ###################
 #{{ CPU }}
 ${goto 50}${color1}${top name 2}${alignr 306}${top cpu 2}%
