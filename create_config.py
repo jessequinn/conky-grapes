@@ -694,35 +694,56 @@ def write_timeconf_conky():
 
 ###########################################
 # added by Jesse Thomas Ernest Quinn
-def gpu_exist():
-    """
-    Returns the number of VGA Controllers in lspci
-    :return: int
-    """
-
-    proc1 = subprocess.Popen(['lspci'], stdout=subprocess.PIPE)
-    proc2 = subprocess.Popen(['grep', '-i', 'vga\\|3d\\|2d'], stdin=proc1.stdout,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc1.stdout.close()  # Allow proc1 to receive a SIGPIPE if proc2 exits.
-    gpus = proc2.communicate()[0].splitlines()  # split devices for counting
-
-    if len(gpus) > 0:
-        return True
-
-    return False
+# TODO: OOP
 
 
-def verify_hwmon():
-    """
-    Need to check which directory contains hwmon temperature sensing as the Lua script will fail otherwise
-    :return: str
-    """
-    if isfile('/sys/class/hwmon/hwmon0/temp1_input'):
-        hwmon_argument = '0 temp 1'
-    else:
-        hwmon_argument = '1 temp 1'
+class Helpers(object):
+    def __init__(self, gpu_count=0, hwmon_argument='0 temp 1'):
+        self._hwmon_argument = hwmon_argument
+        self._gpu_count = gpu_count
 
-    return hwmon_argument
+    @property
+    def gpu_count(self):
+        return self._gpu_count
+
+    @gpu_count.setter
+    def gpu_count(self, value):
+        self._gpu_count = value
+
+    @property
+    def hwmon_argument(self):
+        return self._hwmon_argument
+
+    @hwmon_argument.setter
+    def hwmon_argument(self, value):
+        self._hwmon_argument = value
+
+    @staticmethod
+    def gpu_counter():
+        """
+        Returns the number of VGA Nvidia Controllers in lspci
+        :return: int
+        """
+        # chained subprocess
+        proc1 = subprocess.Popen(['lspci'], stdout=subprocess.PIPE)
+        proc2 = subprocess.Popen(['grep', '-i', 'vga.*nvidia\\|3d.*nvidia\\|3d.*nvidia'], stdin=proc1.stdout,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc1.stdout.close()  # Allow proc1 to receive a SIGPIPE if proc2 exits.
+        gpus = proc2.communicate()[0].splitlines()  # split devices for counting
+
+        return len(gpus)
+
+    def verify_hwmon(self):
+        """
+        Need to check which directory contains hwmon temperature sensing as the Lua script will fail otherwise
+        :return: str
+        """
+        if isfile('/sys/class/hwmon/hwmon0/temp1_input'):
+            self.hwmon_argument = '0 temp 1'
+        else:
+            self.hwmon_argument = '1 temp 1'
+
+        return self.hwmon_argument
 
 
 def write_tempconf_conky(hwmon_location):
@@ -773,7 +794,7 @@ def write_gpuconf_conky():
 def write_tempconf_lua(hwmon_location):
     """
     Prepare lua config for TEMP
-    :param gpunb:
+    :param hwmon_location:
     :return:
     """
     tempconf_lua = []
@@ -924,24 +945,23 @@ if __name__ == "__main__":
     write_conf_blank(src_conky, dest_conky)
 
     # get system info
-    hwmon_location = verify_hwmon()
+    h = Helpers()
     cpunb = cpu_number()
     meminfo = meminfo()
     interface = route_interface()
     disks = disk_select()
-    gpu = gpu_exist()
 
     # write LUA file
-    write_tempconf_lua(hwmon_location)
-    if gpu:
+    write_tempconf_lua(h.verify_hwmon())
+    if h.gpu_counter() > 0:
         write_gpuconf_lua()
     write_cpuconf_lua(cpunb)
     write_fsconf_lua(disks, cpunb)
     write_netconf_lua(interface)
 
     # write conky file
-    write_tempconf_conky(hwmon_location)
-    if gpu:
+    write_tempconf_conky(h.verify_hwmon())
+    if h.gpu_counter() > 0:
         write_gpuconf_conky()
     write_cpuconf_conky(cpunb)
     write_diskioconf_conky()
@@ -954,8 +974,6 @@ if __name__ == "__main__":
     write_color_lua()
 
     # mv config files to config_dir
-    print(dest_conky)
-    print(config_dir + 'conky_gen.conkyrc')
     move(dest_conky, config_dir + 'conky_gen.conkyrc')
     move(dest_lua, config_dir + 'rings-v2_gen.lua')
 
